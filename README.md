@@ -1,75 +1,80 @@
 # BIOS Password Reader
 
-Baca password BIOS Supervisor/User yang tersimpan **plaintext** di UEFI NVRAM (bug InsydeH2O, CVE-2021-43613).
-Untuk **laptop milik sendiri / seizin pemilik**. Tidak untuk bobol laptop orang lain.
+> Forgot your BIOS password? Yeah, it happens. 😅
+> This little tool reads back the Supervisor/User password **if** your BIOS left it as plaintext in UEFI NVRAM (the classic InsydeH2O bug, CVE-2021-43613).
+>
+> 👉 **For your own laptop / with the owner's permission only.** Not for breaking into other people's machines.
+>
+> Baca versi Indonesia di [README.id.md](README.id.md).
 
-Terbukti jalan di: **Axioo MyBook Pro K5 (InsydeH2O)** — variabel `SystemSupervisorPw` terbaca `123`.
+Tested on: **Axioo MyBook Pro K5 (InsydeH2O)** — `SystemSupervisorPw` came out as `123`. Yep, really that simple.
 
-## Dukung BIOS apa saja?
+## Will it work on my BIOS?
 
-| Kondisi | Hasil |
+| Your case | What happens |
 |---|---|
-| InsydeH2O plaintext (Axioo, Acer lama, HP lama, Lenovo lama, RedmiBook, dll) | ✅ Terbaca langsung |
-| AMI / Phoenix / Dell / HP / Lenovo baru (hash di EEPROM, bukan NVRAM) | ❌ `tidak ditemukan` (normal, butuh bongkar/flash) |
-| Boot Legacy BIOS | ❌ butuh UEFI |
-| Password belum diset | ❌ variabel memang tidak ada (normal) |
+| InsydeH2O plaintext (Axioo, old Acer/HP/Lenovo, RedmiBook, etc.) | ✅ Shows the password right away |
+| New Dell / HP / Lenovo, AMI / Phoenix (hash in EEPROM, not NVRAM) | ❌ Says `not found` — that's normal, needs hardware flash |
+| Legacy BIOS boot | ❌ Needs UEFI |
+| No password set | ❌ No variable = nothing to show, all good |
 
-Tool ini **best-effort**: scan semua variabel `*SupervisorPw*`, `*UserPw*`, `*Password*`. Tidak ada brute-force, tidak ada bypass paksa.
+No brute-force, no forced bypass. It just scans `*SupervisorPw*`, `*UserPw*`, `*Password*` and shows what's already there.
 
-## Struktur folder (mana untuk siapa?)
+## Which folder is for me?
 
 ```
 bios-password-reader/
-├── linux/                  ← UNTUK USER LINUX (awam)
-│   ├── bios-reader-linux   ← tinggal klik / ./bios-reader-linux (tanpa Python)
-│   └── bios-reader.sh      ← alternatif tanpa install: bash bios-reader.sh
-├── windows/                ← UNTUK USER WINDOWS (awam)
-│   ├── bios-reader.exe     ← tinggal double-click Run as Administrator
-│   ├── bios-reader.bat     ← alternatif jika .exe diblokir
-│   └── bios_pw_read_windows.ps1  ← source PowerShell
-├── src/                    ← SOURCE TERBUKA (untuk developer / modifikasi)
+├── linux/                  ← LINUX folks, start here
+│   ├── bios-reader-linux   ← just run it, no Python needed
+│   └── bios-reader.sh      ← alt version, no install needed
+├── windows/                ← WINDOWS folks, start here
+│   ├── bios-reader.exe     ← double-click, Run as Administrator
+│   ├── bios-reader.bat     ← backup if .exe gets blocked
+│   └── bios_pw_read_windows.ps1
+├── src/                    ← OPEN SOURCE (devs, tinker here)
 │   ├── main.go, reader_linux.go, reader_windows.go, go.mod
 │   ├── bios_pw_read_linux.py
 │   └── bios_pw_read_windows.ps1
-├── README.md
+├── README.md               ← you are here (English)
+├── README.id.md            ← versi Indonesia
 └── LICENSE
 ```
 
-Source **sengaja disertakan sebelum compiler** agar komunitas bisa audit, perbaiki, dan pull-request.
+Source code is kept **before compiling** on purpose, so anyone can audit it, improve it, or send a PR.
 
-## Cara pakai — Linux (user awam, tanpa Python)
+## Quick start — Linux (no Python, promise)
 
 ```bash
 cd linux
 chmod +x bios-reader-linux bios-reader.sh
 ./bios-reader-linux
-# atau
+# or
 bash bios-reader.sh
 ```
 
-Contoh output:
+You'll see something like:
 ```
 [+] SystemSupervisorPw (7f9102df-...)
     raw: 070000000331323367
-    [+] kemungkinan password: '123'
+    [+] possible password: '123'
 ```
 
-Lalu reboot → `F2` → masukkan `123` → `Security > Set Supervisor Password` → old diisi, new dikosongkan untuk hapus.
+Then reboot → press `F2` → type `123` → go to `Security > Set Supervisor Password` → fill old, leave new empty to clear it.
 
-## Cara pakai — Windows (user awam, tinggal exe)
+## Quick start — Windows (just the .exe)
 
-1. Klik kanan `windows/bios-reader.exe` → **Run as Administrator**
-2. Password langsung tampil di jendela console, tutJendela tidak langsung tertutup (tunggu Enter).
-3. Syarat: boot UEFI, Windows 7+ / 10 / 11, PowerShell tidak dibutuhkan untuk `.exe`.
+1. Right-click `windows/bios-reader.exe` → **Run as Administrator**
+2. Password pops up in the console. Window stays open until you press Enter.
+3. Needs: UEFI boot, Windows 7+ / 10 / 11. No PowerShell needed for the `.exe`.
 
-Alternatif (jika SmartScreen blokir exe):
+If SmartScreen blocks the exe (normal for a new unsigned exe):
 ```
-klik kanan windows/bios-reader.bat → Run as Administrator
+right-click windows/bios-reader.bat → Run as Administrator
 ```
 
-## Build dari source (developer)
+## Build from source (devs)
 
-Butuh Go 1.22+:
+You need Go 1.22+:
 
 ```bash
 cd src
@@ -78,18 +83,18 @@ GOOS=linux GOARCH=amd64 go build -o ../linux/bios-reader-linux .
 GOOS=windows GOARCH=amd64 go build -o ../windows/bios-reader.exe .
 ```
 
-Python / PowerShell asli tetap ada di `src/` sebagai referensi audit.
+The original Python / PowerShell scripts are still in `src/` for reference.
 
-## Keamanan & tanggung jawab
+## Safety & responsibility
 
-- Tool hanya **membaca** NVRAM, tidak menulis/flash. Risiko brick minimal, tapi tetap **tanpa garansi**.
-- Jangan pakai di laptop curian, inventaris kantor tanpa izin IT, atau untuk bypass keamanan pihak lain.
-- Pemilik repo **tidak bertanggung jawab** atas modifikasi komunitas maupun penyalahgunaan untuk kejahatan.
+- Read-only: it never writes/flashes anything. Brick risk is minimal, but still **no warranty**.
+- Please don't use it on stolen laptops, office inventory without IT approval, or to bypass someone else's security.
+- Repo owner is **not responsible** for community forks or misuse for crime.
 
-## Lisensi / Copyright
+## License / Copyright
 
-© 2026 — Bebas dipakai, dimodifikasi, dan disebar ulang **dengan syarat: JANGAN untuk kejahatan / akses tanpa izin**.
-Lihat `LICENSE` lengkap. Modifikasi Anda = tanggung jawab Anda.
+© 2026 — Free to use, modify, and share, **on one condition: DON'T use it for crime / unauthorized access**.
+See `LICENSE` for the full text. Your mods = your responsibility.
 
 ---
-Pull request welcome: tambah GUID vendor baru, parsing hash baru, atau terjemahan README.
+PRs welcome: new vendor GUIDs, new hash parsers, or better translations. 🙌
